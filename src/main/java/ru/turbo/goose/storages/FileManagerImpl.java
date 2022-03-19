@@ -2,12 +2,12 @@ package ru.turbo.goose.storages;
 
 import org.springframework.stereotype.Service;
 import ru.turbo.goose.utils.IdGenerator;
+import ru.turbo.goose.utils.PathHolder;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Objects;
-import java.util.Properties;
 
 @Service
 public class FileManagerImpl implements FileManager {
@@ -15,33 +15,17 @@ public class FileManagerImpl implements FileManager {
     private File root;
 
     public FileManagerImpl() {
-        String rootDir = readRootDirFromConfigFile();
-        if (rootDir != null && !rootDir.isBlank()) {
-            root = new File(rootDir);
-        } else {
-            try {
-                root = Files.createTempDirectory("charta-temp").toFile();
-            } catch (IOException exc) {
-                root = new File(DEFAULT_DATA_DIR);
-            }
+        String path = PathHolder.getPath();
+        if (path == null) {
+            path = DEFAULT_DATA_DIR;
         }
+        root = new File(path);
         root.mkdirs();
-    }
-
-    private String readRootDirFromConfigFile() {
-        String configPath = Path.of("src", "main", "resources", "app.properties").toString();
-        try (InputStream is = new FileInputStream(configPath)) {
-            Properties props = new Properties();
-            props.load(is);
-            return props.getProperty("dataDirectory");
-        } catch (IOException exc) {
-            return null;
-        }
     }
 
     FileManagerImpl(String rootDir) {
         this.root = new File(rootDir);
-        root.mkdir();
+        root.mkdirs();
     }
 
     @Override

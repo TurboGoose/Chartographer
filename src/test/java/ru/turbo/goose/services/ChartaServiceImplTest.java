@@ -75,6 +75,7 @@ class ChartaServiceImplTest {
 
     @Nested
     class GetSegmentMethodTests {
+
         @Test
         public void whenGettingSegmentThatFullyInsideTheChartaThenReturnFullSegment()
                 throws IOException, ServiceException {
@@ -91,7 +92,7 @@ class ChartaServiceImplTest {
             assertThat(segment.getHeight(), is(h));
             for (int i = 0; i < w; i++) {
                 for (int j = 0; j < h; j++) {
-                    assertThat(new Color(segment.getRGB(i, j)), is(Color.BLACK));
+                    assertThat(new Color(segment.getRGB(i, j)), is(Color.GREEN));
                 }
             }
         }
@@ -107,13 +108,15 @@ class ChartaServiceImplTest {
             int h = 5;
             byte[] bytes = service.getSegment(id, x, y, w, h);
             BufferedImage segment = ImageFormatConverter.byteArrayToBufferedBmpImage(bytes);verify(fileManager, atLeast(1)).get(id);
-            int actualW = 4;
-            int actualH = 4;
-            assertThat(segment.getWidth(), is(actualW));
-            assertThat(segment.getHeight(), is(actualH));
-            for (int i = 0; i < actualW; i++) {
-                for (int j = 0; j < actualH; j++) {
-                    assertThat(new Color(segment.getRGB(i, j)), is(Color.BLACK));
+            assertThat(segment.getWidth(), is(w));
+            assertThat(segment.getHeight(), is(h));
+            for (int i = 0; i < w; i++) {
+                for (int j = 0; j < h; j++) {
+                    if (i == 0 || j == 0) {
+                        assertThat(new Color(segment.getRGB(i, j)), is(Color.BLACK));
+                    } else {
+                        assertThat(new Color(segment.getRGB(i, j)), is(Color.GREEN));
+                    }
                 }
             }
         }
@@ -125,17 +128,19 @@ class ChartaServiceImplTest {
             when(fileManager.get(id)).thenReturn(pic);
             int x = -10;
             int y = -10;
-            int w = 1000;
-            int h = 1000;
+            int w = 200;
+            int h = 200;
             byte[] bytes = service.getSegment(id, x, y, w, h);
             BufferedImage segment = ImageFormatConverter.byteArrayToBufferedBmpImage(bytes); verify(fileManager, atLeast(1)).get(id);
-            int actualW = 100;
-            int actualH = 100;
-            assertThat(segment.getWidth(), is(actualW));
-            assertThat(segment.getHeight(), is(actualH));
-            for (int i = 0; i < actualW; i++) {
-                for (int j = 0; j < actualH; j++) {
-                    assertThat(new Color(segment.getRGB(i, j)), is(Color.BLACK));
+            assertThat(segment.getWidth(), is(w));
+            assertThat(segment.getHeight(), is(h));
+            for (int i = 0; i < w; i++) {
+                for (int j = 0; j < h; j++) {
+                    if (i < 10 || j < 10 || i >= 110 || j >= 110) {
+                        assertThat(new Color(segment.getRGB(i, j)), is(Color.BLACK));
+                    } else {
+                        assertThat(new Color(segment.getRGB(i, j)), is(Color.GREEN));
+                    }
                 }
             }
         }
@@ -177,7 +182,6 @@ class ChartaServiceImplTest {
             assertThrows(ValidationException.class, () -> service.getSegment(id, 1, 2, -3, -4));
         }
     }
-
 
     @Nested
     class UpdateSegmentMethodTests {
@@ -288,7 +292,7 @@ class ChartaServiceImplTest {
         }
 
         @Test
-        public void whenWrongIdPassedThenThrowException() throws FileNotFoundException {
+        public void whenWrongIdPassedThenThrowException() {
             when(fileManager.exists(id)).thenReturn(false);
             assertThrows(ServiceException.class, () -> service.getSegment(id, 1, 2, 3, 4));
         }

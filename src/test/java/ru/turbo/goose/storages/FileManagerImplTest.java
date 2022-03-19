@@ -4,19 +4,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.mockito.MockedStatic;
 import ru.turbo.goose.utils.IdGenerator;
+import ru.turbo.goose.utils.PathHolder;
 
-import java.io.*;
-import java.nio.file.Files;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Properties;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mockStatic;
 
 class FileManagerImplTest {
     @TempDir
@@ -26,67 +24,31 @@ class FileManagerImplTest {
     @BeforeEach
     void setUp() {
         IdGenerator.reset();
+        PathHolder.setPath(null);
         manager = new FileManagerImpl(tempDir.getPath());
     }
 
     @Nested
     class ConstructorTests {
         @Test
-        public void whenConfigFileContainsRequiredPathThenCreateDirThere() throws IOException {
-            String path = readRootDirFromConfigFile();
-            File rootDir = new File(path);
+        public void whenDirectoryProvidedThenCreateIt(@TempDir File temp) {
+            File dir = Path.of(temp.getPath(), "temp").toFile();
+            PathHolder.setPath(dir.getPath());
+            assertThat(dir.exists(), is(false));
             new FileManagerImpl();
-            assertThat(rootDir.exists(), is(true));
-            assertThat(rootDir.isDirectory(), is(true));
-            boolean deleted = rootDir.delete();
-            assertThat(deleted, is(true));
+            assertThat(dir.exists(), is(true));
+            assertThat(dir.isDirectory(), is(true));
         }
 
         @Test
-        public void whenConfigFileNotAvailableThenCreateTempDirUsingOS(@TempDir Path temp) throws IOException {
-            String pathInConfigFile = readRootDirFromConfigFile();
-            Path configSource = Path.of("src", "main", "resources", "app.properties");
-            Path configMoved = Files.move(configSource, Path.of(temp.toString(), "app.properties"));
-            assertThat(configSource.toFile().exists(), is(false));
-
-            new FileManagerImpl();
-            assertThat(new File(pathInConfigFile).exists(), is(false));
-            assertThat(new File(FileManagerImpl.DEFAULT_DATA_DIR).exists(), is(false));
-
-            Files.move(configMoved, configSource);
-            assertThat(configSource.toFile().exists(), is(true));
-        }
-
-        String readRootDirFromConfigFile() throws IOException {
-            String configPath = Path.of("src", "main", "resources", "app.properties").toString();
-            try (InputStream is = new FileInputStream(configPath)) {
-                Properties props = new Properties();
-                props.load(is);
-                return props.getProperty("dataDirectory");
-            }
-        }
-
-        @Test
-        public void whenConfigFileNotAvailableAndOSTempDirCouldNotBeCreatedThenCreateTempDirInWorkingDirectory(@TempDir Path temp)
-                throws IOException {
-            String pathInConfigFile = readRootDirFromConfigFile();
-            Path configSource = Path.of("src", "main", "resources", "app.properties");
-            Path configMoved = Files.move(configSource, Path.of(temp.toString(), "app.properties"));
-            assertThat(configSource.toFile().exists(), is(false));
-
-            try (MockedStatic<Files> files = mockStatic(Files.class)) {
-                files.when(() -> Files.createTempDirectory(anyString())).thenThrow(IOException.class);
-                new FileManagerImpl();
-            }
-            assertThat(new File(pathInConfigFile).exists(), is(false));
+        public void whenDirectoryNotProvidedThenCreateDefault() {
             File defaultDir = new File(FileManagerImpl.DEFAULT_DATA_DIR);
+            assertThat(defaultDir.exists(), is(false));
+            new FileManagerImpl();
             assertThat(defaultDir.exists(), is(true));
             assertThat(defaultDir.isDirectory(), is(true));
             boolean deleted = defaultDir.delete();
             assertThat(deleted, is(true));
-
-            Files.move(configMoved, configSource);
-            assertThat(configSource.toFile().exists(), is(true));
         }
     }
 

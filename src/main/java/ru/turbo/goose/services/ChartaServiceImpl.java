@@ -35,19 +35,19 @@ public class ChartaServiceImpl implements ChartaService {
         try {
             int id = fileManager.create();
             File imageFile = fileManager.get(id);
-            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-            fillImageWithBlack(image);
-            ImageIO.write(image, "bmp", imageFile);
+            ImageIO.write(getBlackImage(width, height), "bmp", imageFile);
             return id;
         } catch (IOException exc) {
             throw new ServiceException(exc);
         }
     }
 
-    private void fillImageWithBlack(BufferedImage image) {
+    private BufferedImage getBlackImage(int w, int h) {
+        BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
         Graphics2D graphics = image.createGraphics();
         graphics.setColor(Color.BLACK);
         graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+        return image;
     }
 
     @Override
@@ -70,7 +70,15 @@ public class ChartaServiceImpl implements ChartaService {
             ImageReadParam param = reader.getDefaultReadParam();
             param.setSourceRegion(croppedSegment);
             BufferedImage segment = reader.read(0, param);
-            return ImageFormatConverter.bufferedBmpImageToByteArray(segment);
+
+            BufferedImage fullSegment = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+            Graphics2D graphics = fullSegment.createGraphics();
+            graphics.setColor(Color.BLACK);
+            graphics.fillRect(0, 0, fullSegment.getWidth(), fullSegment.getHeight());
+            Rectangle interSeg = BoundaryChecker.intersectInSegmentCoords(imageWidth, imageHeight, x, y, w, h);
+            graphics.drawImage(segment, null, interSeg.x, interSeg.y);
+
+            return ImageFormatConverter.bufferedBmpImageToByteArray(fullSegment);
         } catch (IOException exc) {
             throw new ServiceException(exc);
         }
@@ -88,7 +96,8 @@ public class ChartaServiceImpl implements ChartaService {
             }
             File target = fileManager.get(id);
             BufferedImage segment = ImageFormatConverter.byteArrayToBufferedBmpImage(data);
-            BufferedImage croppedSeg = segment.getSubimage(interSegArea.x, interSegArea.y, interSegArea.width, interSegArea.height);
+            BufferedImage croppedSeg = segment.getSubimage(interSegArea.x, interSegArea.y,
+                                                           interSegArea.width, interSegArea.height);
             BufferedImage image = ImageIO.read(target);
             Graphics2D gr = image.createGraphics();
             Rectangle interImgArea = BoundaryChecker.intersectInImageCoords(dims.width, dims.height, x, y, w, h);
