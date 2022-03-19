@@ -286,7 +286,7 @@ class ChartaServiceImplTest {
             BufferedImage result = ImageIO.read(picCopy);
             for (int i = 0; i < 100; i++) {
                 for (int j = 0; j < 100; j++) {
-                    assertThat(new Color(result.getRGB(i, j)), is(Color.BLACK));
+                    assertThat(new Color(result.getRGB(i, j)), is(Color.GREEN));
                 }
             }
         }
